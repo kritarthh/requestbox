@@ -7,7 +7,7 @@ defmodule Requestbox.Repo.Migrations.CreateRequest do
       add(:method, :string)
       add(:client_ip, :string)
       add(:path, :string)
-      add(:query_string, :string)
+      add(:query_string, :text)
       add(:form_data, :text)
       add(:headers, :text)
       add(:body, :text)
