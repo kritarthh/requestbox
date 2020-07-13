@@ -4,13 +4,20 @@
     RequestBox gives you a URL that will collect requests made to it and let you inspect them in a human-friendly way.
 Use RequestBox to see what your HTTP client is sending or to inspect and debug webhook requests.
   </p>
-  <%= form_for @changeset, Routes.session_path(@conn, :create), fn f -> %>
+  <%= form_for @changeset, Routes.session_path(@conn, :create), [multipart: true], fn f -> %>
   <p>
     <div class="form-group">
       <%= submit "Create a RequestBox", class: "btn btn-primary btn-lg", role: "button" %><br>
     </div>
     <div class="form-group">
       <%= text_input f, :token, placeholder: "Secret Token (optional)" %>
+    </div>
+
+    <div class="form-group" style="display: flex; justify-content: center; text-align: center;margin-right: auto;margin-left: auto;">
+      <div style="margin-right: 1%;margin-left: auto;">Upload File:</div>
+      <div style="margin-right: auto;margin-left: 1%;">
+        <%= file_input f, :file, placeholder: "File" %>
+      </div>
     </div>
   </p>
   <% end %>

@@ -14,10 +14,11 @@
 <% end %></code></pre></dd>
   <% end %>
 
-  <%= if String.first(@request.body || "") do %>
+  <%= if String.first(@request.body || "") != nil or String.first(@request.form_data || "") do %>
   <dt>Body</dt>
   <dd>
-    <pre class="pre-scrollable"><code class="language-<%= language_content_type(@request.headers, 'json') %>"><%= @request.body %></code></pre>
+    <pre class="pre-scrollable"><%= if @request.form_data == "{}" or @request.form_data == "" or @request.form_data == nil do %><%= @request.body %><% else %><%= for data <- Jason.decode!(@request.form_data) do %><%= elem(data, 0) %>: <%= elem(data, 1) %>
+<% end %><% end %></pre>
   </dd>
   <% end %>
 </dl>

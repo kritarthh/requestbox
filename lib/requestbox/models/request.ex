@@ -1,6 +1,6 @@
 defmodule Requestbox.Request do
   defmodule Header do
-    @derive [Jason.Encoder]
+    @derive {Jason.Encoder, only: [:name, :value]}
     defstruct [:name, :value]
 
     defmodule Type do
@@ -19,6 +19,18 @@ defmodule Requestbox.Request do
       def dump(value), do: Jason.encode(value)
     end
   end
+
+  # defimpl Jason.Encoder, for: Header do
+  #   def encode(value, opts) do
+  #     Jason.Encode.map(
+  #       Map.take(value, [:name, :value])
+  #       |> Enum.map(fn x -> elem(x, 1) end)
+  #       |> Enum.chunk_every(2)
+  #       |> Map.new(fn [k, v] -> {k, v} end),
+  #       opts
+  #     )
+  #   end
+  # end
 
   defmodule Headers do
     defmodule Type do
@@ -44,17 +56,46 @@ defmodule Requestbox.Request do
   alias Requestbox.Request.Headers
   alias Requestbox.Session
 
+  # @derive {Jason.Encoder, only: [:method, :client_ip, :path, :query_string, :headers, :body]}
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "requests" do
     field(:method, :string)
     field(:client_ip, :string)
     field(:path, :string)
     field(:query_string, :string)
+    field(:form_data, :string)
     field(:headers, Headers.Type)
     field(:body, :string)
 
     belongs_to(:session, Session)
     timestamps()
+  end
+
+  defimpl Jason.Encoder, for: Requestbox.Request do
+    def encode(value, opts) do
+      Jason.Encode.map(
+        Map.take(value, [:method, :client_ip, :path, :query_string, :form_data, :headers, :body])
+        |> Map.update!(:headers, fn headers -> Enum.reduce(headers, %{}, fn(x, acc) -> Map.put_new(acc, x.name, x.value) end) end)
+        |> Map.update!(:form_data, fn form_data -> Jason.decode!(form_data) |> Enum.reduce([], fn({k, v}, acc) -> acc ++ [[k, v]] end) end)
+        |> Map.update!(:query_string, fn query_string ->
+          if query_string != "" do
+            query_string
+            |> String.split("&")
+            |> Enum.reduce(%{}, fn(x, acc) ->
+              Map.merge(
+                acc,
+                String.split(x, "=")
+                |> Enum.chunk_every(2)
+                |> Map.new(fn [k, v] -> {k, v} end)
+              )
+            end)
+          else
+            %{}
+          end
+        end),
+        opts
+      )
+    end
   end
 
   encode_param(Requestbox.Request, :session_id, &Session.encode/1)

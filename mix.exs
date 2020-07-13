@@ -58,7 +58,7 @@ defmodule Requestbox.Mixfile do
       {:sqlite_ecto2, "~> 2.3", only: [:dev, :test]},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.0"},
-      {:plug, "~> 1.7"},
+      {:plug, "~> 1.10.3"},
       {:quantum, ">= 1.5.0"},
       {:jason, "~> 1.0"},
       {:maptu, "~> 1.0"},

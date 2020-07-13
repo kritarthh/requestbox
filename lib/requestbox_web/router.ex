@@ -1,5 +1,18 @@
+defmodule RequestboxWeb.Helpers.CacheBodyReader do
+  def read_body(conn, opts) do
+    if conn.method != "PUT" do
+      {:ok, body, conn} = Plug.Conn.read_body(conn, opts)
+      conn = update_in(conn.assigns[:raw_body], &[body | (&1 || [])])
+      {:ok, body, conn}
+    else
+      {:ok, "", conn}
+    end
+  end
+end
+
 defmodule RequestboxWeb.Router do
   use Requestbox.Web, :router
+
 
   pipeline :browser do
     plug(Plug.MethodOverride)
@@ -21,10 +34,13 @@ defmodule RequestboxWeb.Router do
   pipeline :parsers do
     plug(
       Plug.Parsers,
-      parsers: [:urlencoded, :multipart],
-      pasthrough: ["*/"]
+      parsers: [:urlencoded, :multipart, :json],
+      pass: ["*/*"],
+      body_reader: {RequestboxWeb.Helpers.CacheBodyReader, :read_body, []},
+      json_decoder: Jason
     )
   end
+
 
   pipeline :api do
     plug(
@@ -48,12 +64,22 @@ defmodule RequestboxWeb.Router do
   scope "/", RequestboxWeb do
     pipe_through(:browser)
     get("/:id", SessionController, :show)
+    post("/:id", SessionController, :show)
   end
 
-  scope "/req/:session_id", RequestboxWeb do
-    forward("/", RequestController)
+  scope "/", RequestboxWeb do
+    delete("/:id", SessionController, :delete)
+  end
+
+  scope "/api/v1/:session_id", RequestboxWeb do
     # Hack a helper for this route
+    match(:get, "/requests", SessionController, :fetch_all)
+    match(:post, "/requests", SessionController, :fetch_all)
+
+    pipe_through(:parsers)
+    forward("/", RequestController)
     match(:get, "/", RequestController, nil)
+    match(:post, "/", RequestController, nil)
   end
 
   scope "/api" do

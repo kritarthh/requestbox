@@ -2,7 +2,7 @@
   <div class="form-group">
     <div class="input-group">
       <span class="input-group-addon" id="basic-addon3">Box URL</span>
-      <input id="sessionUrl" class="form-control" type="text" value="<%= Routes.request_url(@conn, nil, @session) %>" onfocus="setTimeout(function() {select();})">
+      <input id="sessionUrl" class="form-control" type="text" value="<%= RequestboxWeb.SessionController.get_urls(@conn, @session) %>" onfocus="setTimeout(function() {select();})">
     </div>
   </div>
 </form>

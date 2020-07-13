@@ -37,6 +37,8 @@ defmodule Requestbox.Web do
 
       alias RequestboxWeb.Router.Helpers, as: Routes
       import RequestboxWeb.Gettext
+
+      import Plug.BasicAuth
     end
   end
 

@@ -8,6 +8,10 @@ use Mix.Config
 # General application configuration
 config :requestbox, ecto_repos: [Requestbox.Repo]
 
+config :requestbox, root_dir: "./files"
+
+config :requestbox, :basic_auth, username: "reddit", password: "=good,tiktok=bad"
+
 # Configures the endpoint
 config :requestbox, RequestboxWeb.Endpoint,
   url: [host: "localhost"],

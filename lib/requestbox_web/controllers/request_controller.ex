@@ -5,6 +5,7 @@ defmodule RequestboxWeb.RequestController do
 
   alias Requestbox.Request.Header
   alias Requestbox.Session
+  alias RequestboxWeb.Helpers.Files
 
   plug(Requestbox.BearerToken)
   plug(:load_session)
@@ -14,8 +15,8 @@ defmodule RequestboxWeb.RequestController do
 
   defp load_session(conn, _) do
     session_id = List.last(conn.script_name)
-    session_id = Requestbox.Session.decode(session_id)
-    assign(conn, :session, Repo.get!(Session, session_id))
+    session = Session.find_session(session_id)
+    assign(conn, :session, session)
   end
 
   defp query_token(conn, _) do
@@ -86,7 +87,15 @@ defmodule RequestboxWeb.RequestController do
     headers =
       Enum.map(conn.req_headers, fn {name, value} -> %Header{name: name, value: value} end)
 
-    {:ok, body, conn} = get_body(conn)
+    form_data = case Jason.encode(conn.body_params, pretty: true) do
+                  {:ok, result} -> result
+                  _ -> "{}"
+                end
+
+    {:ok, body, _} = case conn.assigns[:raw_body] do
+      nil -> get_body(conn)
+      b -> {:ok, to_string(b), conn}
+    end
 
     changeset =
       Ecto.build_assoc(conn.assigns[:session], :requests, %{
@@ -95,15 +104,17 @@ defmodule RequestboxWeb.RequestController do
         client_ip: to_string(:inet.ntoa(conn.remote_ip)),
         path: conn.request_path,
         query_string: conn.query_string,
+        form_data: form_data,
         headers: headers,
         body: body
       })
 
     case Repo.insert(changeset) do
       {:ok, request} ->
+        {resp_code, resp_body} = Files.action(conn, body)
         conn
         |> put_resp_content_type("text/plain")
-        |> send_resp(200, request.id)
+        |> send_resp(resp_code, resp_body)
 
       {:error, changeset} ->
         conn
