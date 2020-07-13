@@ -19,7 +19,6 @@ ADD config ./config
 RUN mix deps.get --only-prod
 RUN mix deps.compile
 
-
 FROM node:alpine as frontend
 
 WORKDIR /app
@@ -54,6 +53,9 @@ RUN mix compile
 
 ADD priv/repo priv/repo
 RUN mix phx.digest
+RUN apk add busybox-extras
+RUN timeout 1 busybox-extras telnet 172.17.0.1 5432
+RUN MIX_ENV=prod DATABASE_URL=postgres://requestbox:okchanged@172.17.0.1/requestbox mix ecto.setup
 
 RUN mix distillery.release --verbose
 
