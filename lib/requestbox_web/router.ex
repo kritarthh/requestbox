@@ -10,6 +10,7 @@ defmodule RequestboxWeb.Helpers.CacheBodyReader do
   end
 end
 
+
 defmodule RequestboxWeb.Router do
   use Requestbox.Web, :router
 
@@ -41,62 +42,43 @@ defmodule RequestboxWeb.Router do
     )
   end
 
-
-  pipeline :api do
-    plug(
-      Plug.Parsers,
-      parsers: [:json, Absinthe.Plug.Parser],
-      json_decoder: Jason
-    )
-
-    plug(Plug.Head)
-
-    plug(:accepts, ["json"])
+  pipeline :api_auth do
+    plug(:basic_auth, Application.compile_env(:requestbox, :basic_auth))
   end
 
-  scope "/", RequestboxWeb do
-    pipe_through([:parsers, :browser])
+  scope "/v1", RequestboxWeb do
+    pipe_through([:api_auth, :parsers, :browser])
 
     get("/", SessionController, :index)
     post("/", SessionController, :create)
-  end
 
-  scope "/", RequestboxWeb do
-    pipe_through(:browser)
     get("/:id", SessionController, :show)
-    post("/:id", SessionController, :show)
   end
 
-  scope "/", RequestboxWeb do
-    delete("/:id", SessionController, :delete)
+  scope "/api/v1", RequestboxWeb do
+    pipe_through([:api_auth, :parsers])
+
+    scope "/" do
+      # create a new session without file
+      post("/", SessionController, :api)
+      delete("/:id", SessionController, :delete)
+    end
   end
 
-  scope "/api/v1/bins", RequestboxWeb do
-    match(:post, "/", SessionController, :api)
-
-    pipe_through(:browser)
-    match(:get, "/:id", SessionController, :show)
-  end
-
-  scope "/api/v1/:session_id", RequestboxWeb do
-    # Hack a helper for this route
-    match(:get, "/requests", SessionController, :fetch_all)
-    match(:post, "/requests", SessionController, :fetch_all)
-
+  scope "/api/v1", RequestboxWeb do
     pipe_through(:parsers)
-    forward("/", RequestController)
-    match(:get, "/", RequestController, nil)
-    match(:post, "/", RequestController, nil)
-  end
 
-  scope "/api" do
-    pipe_through(:api)
+    scope "/bin" do
+      scope "/:session_id" do
+        # get all requests
+        get("/requests", SessionController, :fetch_all)
 
-    forward("/graphiql", Absinthe.Plug.GraphiQL,
-      schema: RequestboxWeb.Schema,
-      interface: :playground
-    )
-
-    forward("/", Absinthe.Plug, schema: RequestboxWeb.Schema)
+        # save all get, post and put requests
+        forward("/", RequestController)
+        get("/", RequestController, nil)
+        post("/", RequestController, nil)
+        put("/", RequestController, nil)
+      end
+    end
   end
 end

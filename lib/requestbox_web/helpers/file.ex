@@ -3,14 +3,14 @@ defmodule RequestboxWeb.Helpers.Files do
 
   def action(conn, body) do
     case conn.method do
-      m when m in ["GET", "POST"] -> serve_file(conn)
-      "PUT" -> put_file(conn, body)
+      m when m in ["GET", "POST", "PUT", "PATCH", "DELETE"] -> serve_file(conn)
+      # "PUT" -> put_file(conn, body)
       _ -> {405, "Method not allowed. Allowed methods: [GET, POST, PUT]"}
     end
   end
 
   defp serve_file(conn) do
-    path = Application.get_env(:requestbox, :root_dir) <> conn.request_path
+    path = Application.get_env(:requestbox, :root_dir) <> "/" <> Enum.join(Enum.drop(conn.script_name, 1) |> List.delete_at(-2) , "/")
     Logger.debug fn -> "#{conn.method} path #{path}" end
 
     if File.exists?(path) do

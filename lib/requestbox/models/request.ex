@@ -78,20 +78,8 @@ defmodule Requestbox.Request do
         |> Map.update!(:headers, fn headers -> Enum.reduce(headers, %{}, fn(x, acc) -> Map.put_new(acc, x.name, x.value) end) end)
         |> Map.update!(:form_data, fn form_data -> Jason.decode!(form_data) |> Enum.reduce([], fn({k, v}, acc) -> acc ++ [[k, v]] end) end)
         |> Map.update!(:query_string, fn query_string ->
-          if query_string != "" do
-            query_string
-            |> String.split("&")
-            |> Enum.reduce(%{}, fn(x, acc) ->
-              Map.merge(
-                acc,
-                String.split(x, "=")
-                |> Enum.chunk_every(2)
-                |> Map.new(fn [k, v] -> {k, v} end)
-              )
-            end)
-          else
-            %{}
-          end
+          URI.query_decoder(query_string)
+          |> Enum.reduce(%{}, fn({k, v}, acc) -> Map.merge(acc, %{k => v}) end)
         end),
         opts
       )

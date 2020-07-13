@@ -9,7 +9,6 @@ defmodule RequestboxWeb.SessionController do
   alias Ecto.Multi
 
   plug(:scrub_params, "session" when action in [:create, :update])
-  plug(:basic_auth, Application.compile_env(:requestbox, :basic_auth))
 
   def index(conn, _params) do
     changeset = Session.changeset(%Session{})
@@ -54,17 +53,17 @@ defmodule RequestboxWeb.SessionController do
     case Repo.transaction(multi) do
       {:ok, result} ->
         if file != nil do
-          path = Application.get_env(:requestbox, :root_dir) <> "/api/v1/" <> file.filename
+          path = Application.get_env(:requestbox, :root_dir) <> conn.request_path <> "/" <> file.filename
           File.mkdir_p!(Path.dirname(path))
           File.cp(file.path, path)
         end
         conn
         |> redirect(to: Routes.session_path(conn, :show, result.session))
-      {:error, :session, changeset, %{}} ->
+      {:error, :session, _changeset, %{}} ->
         conn
         |> put_flash(:error, "Failed to create session")
         |> redirect(to: Routes.session_path(conn, :index))
-      {:error, :vanity, changeset, %{}} ->
+      {:error, :vanity, _changeset, %{}} ->
         conn
         |> put_flash(:error, "Failed to create vanity")
         |> redirect(to: Routes.session_path(conn, :index))
@@ -114,7 +113,7 @@ defmodule RequestboxWeb.SessionController do
     root_path = String.replace(Routes.request_url(conn, nil, session), Routes.request_path(conn, nil, session), "")
     session_orig_path = String.replace(Routes.request_path(conn, nil, session), root_path, "")
 
-    Routes.request_url(conn, nil, session) <> "," <> String.replace(Routes.request_url(conn, nil, session), session_orig_path, "/api/v1/#{vanity}")
+    Routes.request_url(conn, nil, session) <> "," <> String.replace(Routes.request_url(conn, nil, session), session_orig_path, "/api/v1/bin/#{vanity}")
   end
 
   defp render_session(conn, %Session{} = session) do

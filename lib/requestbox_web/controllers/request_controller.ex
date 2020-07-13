@@ -16,6 +16,10 @@ defmodule RequestboxWeb.RequestController do
   defp load_session(conn, _) do
     session_id = List.last(conn.script_name)
     session = Session.find_session(session_id)
+    if is_nil(session) do
+      conn
+      |> send_resp(404, "session not found")
+    end
     assign(conn, :session, session)
   end
 
@@ -123,4 +127,5 @@ defmodule RequestboxWeb.RequestController do
         |> halt
     end
   end
+
 end
