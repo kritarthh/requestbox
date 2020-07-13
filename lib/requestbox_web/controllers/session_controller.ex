@@ -15,11 +15,7 @@ defmodule RequestboxWeb.SessionController do
   end
 
   def create(conn, %{"session" => params}) do
-
     file = params["file"]
-
-    IO.inspect(file)
-    IO.inspect(params)
 
     session_params = if file != nil do
       Map.take(params, [:token])
@@ -43,7 +39,9 @@ defmodule RequestboxWeb.SessionController do
     case Repo.transaction(multi) do
       {:ok, result} ->
         if file != nil do
-          File.cp(file.path, Application.get_env(:requestbox, :root_dir) <> "api/v1/" <> file.filename)
+          path = Application.get_env(:requestbox, :root_dir) <> "/api/v1/" <> file.filename
+          File.mkdir_p!(Path.dirname(path))
+          File.cp(file.path, path)
         end
         conn
         |> redirect(to: Routes.session_path(conn, :show, result.session))
