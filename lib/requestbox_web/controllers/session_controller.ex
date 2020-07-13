@@ -1,6 +1,8 @@
 defmodule RequestboxWeb.SessionController do
   use Requestbox.Web, :controller
 
+  use Requestbox.HashID
+
   alias Requestbox.Request
   alias Requestbox.Session
   alias Requestbox.Vanity
@@ -12,6 +14,19 @@ defmodule RequestboxWeb.SessionController do
   def index(conn, _params) do
     changeset = Session.changeset(%Session{})
     render(conn, :index, changeset: changeset)
+  end
+
+  def api(conn, _params) do
+    changeset = Session.changeset(%Session{}, %{})
+
+    case Repo.insert(changeset) do
+      {:ok, session} -> conn
+      |> put_resp_content_type("application/json")
+      |> send_resp(200, Jason.encode!(%{name: conn.request_path <> RequestboxWeb.SessionController.encode(session.id)}))
+      _ -> conn
+      |> put_resp_content_type("application/json")
+      |> send_resp(500, Jason.encode!(%{error: "cannot create session"}))
+    end
   end
 
   def create(conn, %{"session" => params}) do

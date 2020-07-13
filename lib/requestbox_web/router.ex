@@ -71,6 +71,13 @@ defmodule RequestboxWeb.Router do
     delete("/:id", SessionController, :delete)
   end
 
+  scope "/api/v1/bins", RequestboxWeb do
+    match(:post, "/", SessionController, :api)
+
+    pipe_through(:browser)
+    match(:get, "/:id", SessionController, :show)
+  end
+
   scope "/api/v1/:session_id", RequestboxWeb do
     # Hack a helper for this route
     match(:get, "/requests", SessionController, :fetch_all)
